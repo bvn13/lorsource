@@ -85,9 +85,11 @@ public class AddPhotoController {
       File photofile;
 
       do {
-        photoname = Integer.toString(AuthUtil.getCurrentUser().getId()) + ':' + random.nextInt() + '.' + extension;
+        photoname = Integer.toString(AuthUtil.getCurrentUser().getId()) + '-' + random.nextInt() + '.' + extension; // ':' symbol would not be correct at Windows platform anyway
         photofile = new File(siteConfig.getUploadPath() + "/photos", photoname);
       } while (photofile.exists());
+
+      photofile.getParentFile().mkdirs(); //if it does not exist
 
       Files.move(uploadedFile, photofile.toPath());
 
@@ -104,7 +106,12 @@ public class AddPhotoController {
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       return new ModelAndView("addphoto", "error", ex.getMessage());
     } finally {
-      Files.deleteIfExists(uploadedFile);
+      try {
+        Files.deleteIfExists(uploadedFile);
+      } catch (IOException e) {
+        //Процесс не может получить доступ к файлу, так как этот файл занят другим процессом
+        logger.warn("Hidden exception: "+e.getMessage(), e);
+      }
     }
   }
 }
